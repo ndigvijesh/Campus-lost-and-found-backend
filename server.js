@@ -1,23 +1,18 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const path = require("path");
 const dotenv = require("dotenv");
-const configureApp = require("./settings/config.js");
-const seedAdmin  = require("./seeders/seedAdmin.js");
+const configureApp = require("./src/settings/config.js");
+const seedAdmin = require("./src/seeders/seedAdmin.js");
 
-// Set the defaul environment
+// Load the optional local configuration without overriding hosting-platform variables.
+dotenv.config({ path: path.resolve(__dirname, ".env") });
 process.env.NODE_ENV = process.env.NODE_ENV || "development";
 console.log(`Current Environment: ${process.env.NODE_ENV}`);
 
-// configure dotenv
-dotenv.config();
-const envFile = `.env.${process.env.NODE_ENV}`;
-console.log(`Loading environment variables from: ${envFile}`);
-dotenv.config({ path: envFile });
-
 const app = express();
-const port = parseInt(process.env.PORT) || 3001;
+const port = Number.parseInt(process.env.PORT, 10) || 3001;
 
-//  Parsing request body
 app.use(express.json());
 configureApp(app);
 
@@ -33,15 +28,12 @@ async function bootstrap() {
     await mongoose.connect(mongoUri, { dbName });
     console.log("Connected To MongoDB Atlas successfully");
 
-    // Seed default admin user if not exists
     await seedAdmin();
 
-    app.listen(port, () => {
+    app.listen(port, "0.0.0.0", () => {
       console.log(`App listening on port ${port}`);
     });
-
   } catch (error) {
-    // Sanitize any potential connection string secrets from logged errors
     const safeError = error.message ? error.message.replace(/:([^:@]+)@/, ':***@') : error;
     console.error("Database connection error:", safeError);
     process.exit(1);
@@ -49,4 +41,3 @@ async function bootstrap() {
 }
 
 bootstrap();
-
