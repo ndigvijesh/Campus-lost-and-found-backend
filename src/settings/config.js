@@ -90,22 +90,35 @@ app.use(responseFormatter);
 //  Winston Express Logger Middleware
 app.use(expressWinstonLogger);
 
+// Root endpoint (convenient confirmation when visiting deployed URL)
+app.get("/", (req, res) => {
+  res.status(StatusCodes.OK).json({
+    status: "healthy",
+    message: "Campus Lost and Found Backend API is running",
+    healthCheck: "/health",
+    apiDocumentation: "/api-docs"
+  });
+});
+
 // Health Check Endpoint (useful for Render, Railway, AWS, Docker health probes)
 app.get("/health", (req, res) => {
   res.status(StatusCodes.OK).json({ status: "healthy", timestamp: new Date().toISOString() });
 });
 
 // Serve static uploads
-const uploadsDir = path.resolve(__dirname, "../../uploads");
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-app.use("/uploads", express.static(uploadsDir));
+const localClientUploads = path.resolve(__dirname, "../../../client/public/uploads");
+const defaultServerUploads = path.resolve(__dirname, "../../uploads");
+const uploadDir = process.env.UPLOAD_DIR ||
+  (fs.existsSync(path.resolve(__dirname, "../../../client")) ? localClientUploads : defaultServerUploads);
 
-// Fallback to client uploads directory if present in monorepo
-const clientUploadsDir = path.resolve(__dirname, "../../../client/public/uploads");
-if (fs.existsSync(clientUploadsDir)) {
-  app.use("/uploads", express.static(clientUploadsDir));
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+app.use("/uploads", express.static(uploadDir));
+
+// Also serve defaultServerUploads if distinct from uploadDir
+if (uploadDir !== defaultServerUploads && fs.existsSync(defaultServerUploads)) {
+  app.use("/uploads", express.static(defaultServerUploads));
 }
 
 //  Defining Routes

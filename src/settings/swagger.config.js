@@ -22,7 +22,12 @@ const options = {
     },
     servers: [
       {
-        url: "http://localhost:3001",
+        url: process.env.RENDER_EXTERNAL_URL || process.env.BACKEND_URL || "/",
+        description: "Current environment server",
+      },
+      {
+        url: `http://localhost:${process.env.PORT || 3001}`,
+        description: "Local development server",
       },
     ],
   },
